@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 Contains code (and configuration files) for creating the documentation of the CVVisual project.
 
 ##Requirements to build the documentation
@@ -23,4 +24,4 @@ Create a file `[dasherised topic]-[category][:[order]].md`.
 
 Then just write your piece, but make sure to start the first line with a `#`, it's used to get the title of your writing.
 
-Run the `build.rb` script from the `build` directory to create the HTML documentation and the API reference
+Run the `build.rb` script from the `build` directory to create the HTML documentation and the API reference.
