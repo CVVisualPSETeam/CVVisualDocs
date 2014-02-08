@@ -1,0 +1,10 @@
+*.sw?
+_site
+_pages
+_posts
+_site
+api
+repo
+index.md
+man
+img
