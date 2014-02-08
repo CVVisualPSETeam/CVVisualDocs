@@ -91,6 +91,7 @@ def run_jekyll
 	print "jekyll build..."
 	silent_system "cd #{BASE_DIR}; jekyll build --destination ."
 	silent_system "cd #{BASE_DIR}; ruby ~/.gem/ruby/1.8/bin/jekyll build --destination ."
+	silent_system "cd #{BASE_DIR}; cp _site/* . -fr"
 	puts " done..."
 end 
 
