@@ -19,7 +19,7 @@ def update_repo
 	 	  cd #{GIT_DIR}; git clone git@github.com:CVVisualPSETeam/CVVisual.git .
 	   	  git remote add origin git@github.com:CVVisualPSETeam/CVVisual.git"
 	end
-	#puts `cd #{GIT_DIR}; git pull origin master; git reset --hard origin/master`
+	puts `cd #{GIT_DIR}; git pull origin master; git reset --hard origin/master`
 end
 
 #Makes preparations for the use of jekyll
