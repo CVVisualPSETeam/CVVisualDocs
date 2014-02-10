@@ -1,8 +1,10 @@
 #! /usr/bin/env ruby
 
 require 'pp'
+require 'yaml'
+require 'fileutils'
 
-BASE_DIR = File.dirname(__FILE__) + "/.."
+BASE_DIR = File.expand_path(File.dirname(__FILE__)) + "/.."
 GIT_DIR = BASE_DIR + "/repo"
 DOC_DIR = GIT_DIR + "/doc"
 POSTS_DIR = BASE_DIR + "/_posts"
@@ -10,6 +12,22 @@ API_DIR = BASE_DIR + "/api"
 
 DATE_STR = `date +%Y-%m-%d`.chomp
 DATE_STR_W_TIME = `date "+%Y-%m-%d %H:%M:%S"`.chomp
+
+MISSING_HELP_PAGE = <<HTML
+<html>
+<head><title>Some documentation</title></head>
+<body>
+	You want to see  some kind of help for <?php echo $_GET["topic"] ?>?<br/>
+	Well, to tell you the sad truth, no one ever wrote one.
+	Ask the developers for help (yelling at them sometimes also helps).<br/>
+	<br/>
+	<div style="width: 100%; max-height: 100%; text-align: center">
+		<img style="height: 100%" src="http://uqudy.serpens.uberspace.de/wp-content/uploads/2013/09/CIMG0398-1024x768.jpg"/><br/>
+		<small>By Johannes Bechberger, CC-BY-SA licensed</small>
+	</div>
+</body>
+</html>
+HTML
 
 #Pulls the git repository 
 def update_repo
@@ -24,8 +42,10 @@ end
 
 #Makes preparations for the use of jekyll
 def prepare_jekyll
-	silent_system "bash 'cd #{BASE_DIR} rm index.html; rm _posts -fr;
-   						mkdir _posts'"
+	File.delete BASE_DIR + "/index.html" if File.exists?(BASE_DIR + "/index.html")
+	FileUtils.rm_rf "#{BASE_DIR}/_posts/" if File.exists?("#{BASE_DIR}/_posts")
+	FileUtils.mkdir "#{BASE_DIR}/_posts"
+	file_name_map = {}
 	Dir.new(DOC_DIR).entries.each do |file_name|
 		next if [".", ".."].include? file_name
 		full_name = DOC_DIR + "/" + file_name
@@ -37,24 +57,29 @@ def prepare_jekyll
 			puts " done..."
 		else
 			puts "Preparing doc file '#{file_name}'..."
-			prepare_file file_name
+			res_fn = prepare_file(file_name)
+			file_name_map[file_name] = res_fn if res_fn != ""
 		end
 	end
+	return file_name_map
 end
 
 #Prepares the given file (full path: BASE_DIR / file) and copies it at the
 #right destination for use with jekyll
 def prepare_file file
+	return "" if file == "topics.yml"
 	file_lines = File.readlines(DOC_DIR + "/" + file)
 	new_file_name = ""
+	resulting_file_name = ""
 	new_file_content = ""
 	return if file_lines.empty? || !file_lines[0].start_with?("#")
 	title = file_lines[0].chomp.slice(1..-1)
 	file_content = file_lines.drop(1).join
 	if file == "index.md"
-		new_file_name = BASE_DIR + "/index.html"
+		resulting_file_name = "index.html"
+		new_file_name = BASE_DIR + "/index.md"
 		new_file_content = "---
-layout: default
+layout: page 
 title: #{title}
 ---
 
@@ -67,9 +92,10 @@ title: #{title}
 			category = arr[0]
 			order = arr[1].to_i
 		end
+		resulting_file_name = "#{category}/#{file.sub(/[^.]+\z/, "html")}"
 		new_file_name = "#{POSTS_DIR}/#{DATE_STR}-#{file}"
 		new_file_content = "---
-layout: page
+layout: default
 title: #{title}
 date: #{DATE_STR_W_TIME}
 category: #{category}
@@ -83,22 +109,54 @@ order: #{order}
 		File.open(new_file_name, "w") do |f|
 			f.write new_file_content
 		end
+		return resulting_file_name
 	end
+	return ""
 end
 
 #Executes the actual jekyll command
 def run_jekyll
 	print "jekyll build..."
-	silent_system "cd #{BASE_DIR}; jekyll build --destination ."
+	FileUtils.rm_rf "#{BASE_DIR}/_site" if File.exists?("#{BASE_DIR}/_site")
+	silent_system "cd #{BASE_DIR}; jekyll build"
 	silent_system "cd #{BASE_DIR}; ruby ~/.gem/ruby/1.8/bin/jekyll build --destination ."
-	silent_system "cd #{BASE_DIR}; cp _site/* . -fr"
+	silent_system "cd #{BASE_DIR}; /bin/cp _site/* . -fr"
 	puts " done..."
 end 
 
-#Executes jekyll
+#Executes jekyll and creates the help.php script
 def jekyll
-	prepare_jekyll
+	file_name_map = prepare_jekyll
+	create_help_script(file_name_map)
 	run_jekyll
+end
+
+#Creates the help.php script using the topics.yml file
+def create_help_script file_name_map
+	puts "Create help.php script"
+	topic_config = YAML.load_file(DOC_DIR + "/topics.yml")
+	topic_map_code = []
+	topic_config.each do |topic, file|
+		if file_name_map.key? file
+			topic_map_code << "'#{topic}' => '#{file_name_map[file]}'"
+		end
+	end
+	php_script = "<?php
+$topic_map = array(#{topic_map_code.join(", ")});
+if (isset($_GET['topic'])){
+	if (isset($topic_map[$_GET['topic']])){
+		$topic_url = $topic_map[$_GET['topic']];
+		header(\"Location: $topic_url\");
+	} else {
+		?>
+		#{MISSING_HELP_PAGE}
+		<?php
+	}
+}
+?>"
+	File.open(BASE_DIR + "/help.php", "w") do |file|
+		file.write php_script
+	end
 end
 
 #Executes doxygen
@@ -112,7 +170,7 @@ end
 
 #Copies the source to its destination
 def copy_dir source_dir, dest_dir
-	system "cp -rf #{source_dir}/ #{dest_dir}/"
+	system "/bin/cp -rf #{source_dir}/ #{dest_dir}/"
 end
 
 #Executes the given command silently on the shell
