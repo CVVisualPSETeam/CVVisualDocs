@@ -8,7 +8,8 @@ BASE_DIR = File.expand_path(File.dirname(__FILE__)) + "/.."
 GIT_DIR = BASE_DIR + "/repo"
 DOC_DIR = GIT_DIR + "/doc"
 POSTS_DIR = BASE_DIR + "/_posts"
-API_DIR = BASE_DIR + "/api" 
+SITE_DIR = BASE_DIR + "/_site"
+API_DIR = SITE_DIR + "/api" 
 
 DATE_STR = `date +%Y-%m-%d`.chomp
 DATE_STR_W_TIME = `date "+%Y-%m-%d %H:%M:%S"`.chomp
@@ -117,10 +118,9 @@ end
 #Executes the actual jekyll command
 def run_jekyll
 	print "jekyll build..."
-	FileUtils.rm_rf "#{BASE_DIR}/_site" if File.exists?("#{BASE_DIR}/_site")
+	FileUtils.rm_rf SITE_DIR if File.exists?(SITE_DIR)
 	silent_system "cd #{BASE_DIR}; jekyll build"
-	silent_system "cd #{BASE_DIR}; ruby ~/.gem/ruby/1.8/bin/jekyll build --destination ."
-	silent_system "cd #{BASE_DIR}; /bin/cp _site/* . -fr"
+	silent_system "cd #{BASE_DIR}; ruby ~/.gem/ruby/1.8/bin/jekyll build"
 	puts " done..."
 end 
 
@@ -168,6 +168,13 @@ def doxygen
 	puts " done..."
 end
 
+#Zips the _site dir
+def zip_site
+	print "Zipping _site dir..."
+	system "zip -r #{SITE_DIR}/site #{SITE_DIR} -q"
+	puts " done..."
+end
+
 #Copies the source to its destination
 def copy_dir source_dir, dest_dir
 	system "/bin/cp -rf #{source_dir}/ #{dest_dir}/"
@@ -175,10 +182,10 @@ end
 
 #Executes the given command silently on the shell
 def silent_system cmd
-	system "bash #{cmd} 2> /dev/null 1> /dev/null"
+	system "/bin/sh #{cmd} 2> /dev/null 1> /dev/null"
 end
 
 update_repo
 jekyll
 doxygen
-
+zip_site
