@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 Contains code (and configuration files) for creating the documentation of the CVVisual project.
 
 ##Requirements to build the documentation
