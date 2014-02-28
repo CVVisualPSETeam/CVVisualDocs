@@ -38,7 +38,7 @@ exclude: ['bin', 'README.md', 'build', 'man', 'Doxyfile',
           'build', 'html', 'repo']
 
 # Use the redcarpet Markdown renderer
-markdown: redcarpet
+markdown: redcarpet 
 redcarpet:
     extensions: [
         'no_intra_emphasis',

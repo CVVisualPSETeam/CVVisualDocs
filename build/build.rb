@@ -4,7 +4,7 @@ require 'pp'
 require 'yaml'
 require 'fileutils'
 
-BASE_DIR = File.expand_path(File.dirname(__FILE__)) + "/.."
+BASE_DIR = File.dirname(__FILE__) + "/.."
 GIT_DIR = BASE_DIR + "/repo"
 DOC_DIR = GIT_DIR + "/doc"
 POSTS_DIR = BASE_DIR + "/_posts"
@@ -45,6 +45,8 @@ end
 def prepare_jekyll
 	File.delete BASE_DIR + "/index.html" if File.exists?(BASE_DIR + "/index.html")
 	FileUtils.rm_rf "#{BASE_DIR}/_posts/" if File.exists?("#{BASE_DIR}/_posts")
+	FileUtils.rm_rf "#{BASE_DIR}/tut/" if File.exists?("#{BASE_DIR}/tut")
+	FileUtils.rm_rf "#{BASE_DIR}/ref/" if File.exists?("#{BASE_DIR}/ref")	
 	FileUtils.mkdir "#{BASE_DIR}/_posts"
 	file_name_map = {}
 	Dir.new(DOC_DIR).entries.each do |file_name|
@@ -75,7 +77,7 @@ def prepare_file file
 	new_file_content = ""
 	return if file_lines.empty? || !file_lines[0].start_with?("#")
 	title = file_lines[0].chomp.slice(1..-1)
-	file_content = file_lines.drop(1).join
+	file_content = file_lines.join
 	if file == "index.md"
 		resulting_file_name = "index.html"
 		new_file_name = BASE_DIR + "/index.md"
@@ -163,7 +165,7 @@ end
 def doxygen
 	print "doxygen..."
 	silent_system "cd #{BASE_DIR}; doxygen"
-	copy_dir BASE_DIR + "/html", API_DIR
+	system "mv #{BASE_DIR}/html #{API_DIR}"
 	silent_system "cd #{BASE_DIR}; rm -fr *.tmp; rm -fr html"
 	puts " done..."
 end
@@ -171,7 +173,7 @@ end
 #Zips the _site dir
 def zip_site
 	print "Zipping _site dir..."
-	system "zip -r #{SITE_DIR}/site #{SITE_DIR} -q"
+	system "cd #{SITE_DIR}; zip -r site . -q"
 	puts " done..."
 end
 
