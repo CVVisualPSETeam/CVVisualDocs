@@ -53,8 +53,8 @@ def prepare_jekyll
 		next if [".", ".."].include? file_name
 		full_name = DOC_DIR + "/" + file_name
 		if File.directory? full_name
-			dest_dir = BASE_DIR + "/" + file_name
 			print "Copy dir '#{file_name}'..."
+			dest_dir = "#{BASE_DIR}/#{file_name}"
 			system "rm #{dest_dir} -fr"
 			copy_dir full_name, dest_dir
 			puts " done..."
@@ -138,9 +138,12 @@ def create_help_script file_name_map
 	puts "Create help.php script"
 	topic_config = YAML.load_file(DOC_DIR + "/topics.yml")
 	topic_map_code = []
-	topic_config.each do |topic, file|
+	topic_config.each do |topic, md_ref|
+		arr = md_ref.split '#'
+		file = arr[0]
+		ref_app = arr.size == 2 ? "#{arr[1]}" : ""
 		if file_name_map.key? file
-			topic_map_code << "'#{topic}' => '#{file_name_map[file]}'"
+			topic_map_code << "'#{topic}' => '#{file_name_map[file]}#{ref_app}'"
 		end
 	end
 	php_script = "<?php
@@ -158,6 +161,25 @@ if (isset($_GET['topic'])){
 ?>"
 	File.open(BASE_DIR + "/help.php", "w") do |file|
 		file.write php_script
+	end
+end
+
+#Copy the directories inside the doc directory
+def copy_doc_dirs
+	Dir.new(DOC_DIR).entries.each do |file_name|
+		next if [".", ".."].include? file_name
+		full_name = DOC_DIR + "/" + file_name
+		next unless File.directory? full_name
+		print "Copy dir '#{file_name}'..."
+		['doc', 'tut', 'ref', 'def', 'post'].each do |sub_dir|
+			dest_base_dir = "#{BASE_DIR}/_site/#{sub_dir}"
+			if File.exists? dest_base_dir
+				dest_dir = "#{dest_base_dir}/#{file_name}"
+				system "rm #{dest_dir} -fr"
+				copy_dir full_name, dest_dir
+			end
+		end
+		puts " done..."
 	end
 end
 
@@ -189,5 +211,6 @@ end
 
 update_repo
 jekyll
+copy_doc_dirs
 doxygen
 zip_site
